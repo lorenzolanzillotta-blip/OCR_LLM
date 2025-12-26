@@ -6,7 +6,6 @@ import easyocr
 import numpy as np
 from PIL import Image
 import re
-from spellchecker import SpellChecker
 
 st.set_page_config(page_title="OCR Locale", layout="centered")
 
@@ -49,16 +48,10 @@ if img_file is not None:
     st.subheader("📄 Testo OCR grezzo")
     st.text(st.session_state.raw_text)
 
-    # Pulizia testo con spellchecker e regex
+    # Pulizia testo con regex (senza spellchecker)
     if st.button("🧹 Pulisci testo"):
         with st.spinner("Pulizia testo..."):
-            # Spellchecker
-            spell = SpellChecker(language='it')
-            words = st.session_state.raw_text.split()
-            corrected_words = [spell.correction(w) for w in words]
-            text_corrected = " ".join(corrected_words)
-            # Regex cleanup
-            clean_text = re.sub(r'\s+', ' ', text_corrected).strip()
+            clean_text = re.sub(r'\s+', ' ', st.session_state.raw_text).strip()
             st.session_state.clean_text = clean_text
 
 # -----------------------------
