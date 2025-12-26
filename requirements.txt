@@ -1,6 +1,6 @@
-streamlit>=1.25
-torch>=2.1
-easyocr>=1.6
-numpy>=1.24
-pillow>=10.0
-pyspellchecker>=0.7.0
+streamlit
+torch
+easyocr
+numpy
+pillow
+pyspellchecker
