@@ -17,7 +17,7 @@ os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 client = OpenAI()
 
 # -----------------------------
-# OCR (cache)
+# OCR cache
 # -----------------------------
 @st.cache_resource
 def load_ocr():
@@ -28,11 +28,11 @@ reader = load_ocr()
 # -----------------------------
 # Session state
 # -----------------------------
+if "raw_text" not in st.session_state:
+    st.session_state.raw_text = None
+
 if "clean_text" not in st.session_state:
     st.session_state.clean_text = None
-
-if "last_image_id" not in st.session_state:
-    st.session_state.last_image_id = None
 
 st.title("📸 OCR + GPT")
 
@@ -42,43 +42,47 @@ st.title("📸 OCR + GPT")
 img_file = st.camera_input("Scatta una foto")
 
 if img_file is not None:
-
-    # Identifica nuova immagine
-    image_id = hash(img_file.getvalue())
-
-    # Se foto nuova → reset stato
-    if st.session_state.last_image_id != image_id:
-        st.session_state.clean_text = None
-        st.session_state.last_image_id = image_id
-
     image = Image.open(img_file)
     st.image(image, caption="Foto acquisita", use_column_width=True)
 
-    # OCR
+    # OCR (automatico)
     with st.spinner("Riconoscimento testo..."):
         img_np = np.array(image)
         ocr_result = reader.readtext(img_np, detail=0)
-        raw_text = "\n".join(ocr_result)
+        raw_text = "\n".join(ocr_result)[:3000]  # limite token
+        st.session_state.raw_text = raw_text
+        st.session_state.clean_text = None
 
-        # sicurezza token
-        raw_text = raw_text[:3000]
+    st.subheader("📄 Testo OCR grezzo")
+    st.text(st.session_state.raw_text)
 
-    # GPT (UNA SOLA VOLTA)
-    if st.session_state.clean_text is None:
+    # -----------------------------
+    # GPT SOLO SU CLICK
+    # -----------------------------
+    if st.button("🧠 Pulisci testo con GPT"):
+
         with st.spinner("Pulizia testo con GPT..."):
-            response = client.responses.create(
-                model="gpt-4o-mini",
-                input=f"""
-                Il seguente testo è stato estratto da una foto tramite OCR.
-                Correggi errori, sistema la formattazione e restituisci SOLO il testo finale pulito.
+            try:
+                response = client.responses.create(
+                    model="gpt-4o-mini",
+                    input=f"""
+                    Il seguente testo è stato estratto da una foto tramite OCR.
+                    Correggi errori, sistema la formattazione e restituisci SOLO il testo finale pulito.
 
-                TESTO OCR:
-                {raw_text}
-                """
-            )
+                    TESTO OCR:
+                    {st.session_state.raw_text}
+                    """
+                )
 
-            st.session_state.clean_text = response.output_text
+                st.session_state.clean_text = response.output_text
 
-    # Output
-    st.subheader("📄 Testo riconosciuto")
+            except Exception as e:
+                st.error("Errore GPT (rate limit o quota). Riprova tra qualche secondo.")
+                st.stop()
+
+# -----------------------------
+# Output finale
+# -----------------------------
+if st.session_state.clean_text:
+    st.subheader("✅ Testo pulito")
     st.text(st.session_state.clean_text)
