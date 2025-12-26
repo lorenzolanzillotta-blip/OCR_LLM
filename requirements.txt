@@ -6,4 +6,4 @@ torch
 easyocr
 numpy
 pillow
-pyspellchecker
+pyspellchecker==0.7.0
