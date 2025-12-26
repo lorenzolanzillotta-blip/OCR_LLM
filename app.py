@@ -48,7 +48,7 @@ if img_file is not None:
         with st.spinner("Pulizia testo con GPT..."):
             try:
                 response = client.responses.create(
-                    model="gpt-4o-mini",
+                    model="gpt-3.5-turbo",
                     input=f"""
                     Il seguente testo è stato estratto da una foto tramite OCR.
                     Correggi errori, sistema la formattazione e restituisci SOLO il testo finale pulito.
