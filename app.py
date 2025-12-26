@@ -6,13 +6,12 @@ import easyocr
 import numpy as np
 from PIL import Image
 from openai import OpenAI
-import os
 
-# -----------------------------
-# Config
-# -----------------------------
 st.set_page_config(page_title="OCR + GPT", layout="centered")
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+
 
 # Inizializza OCR (una sola volta)
 @st.cache_resource
