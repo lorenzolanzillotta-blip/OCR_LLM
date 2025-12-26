@@ -6,10 +6,15 @@ import easyocr
 import numpy as np
 from PIL import Image
 from openai import OpenAI
+import os
 
 st.set_page_config(page_title="OCR + GPT", layout="centered")
 
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# 👉 Espone il secret come env var (fondamentale)
+os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+
+client = OpenAI()
+
 
 
 
@@ -45,16 +50,19 @@ if img_file is not None:
         {raw_text}
         """
 
-        response = client.chat.completions.create(
+        response = client.responses.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "Sei un assistente che pulisce testo OCR."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0
+            input=f"""
+            Il seguente testo è stato estratto da una foto tramite OCR.
+            Correggi errori, sistema la formattazione e restituisci SOLO il testo finale pulito.
+        
+            TESTO OCR:
+            {raw_text}
+            """
         )
+        
+        clean_text = response.output_text
 
-        clean_text = response.choices[0].message.content
 
     st.subheader("📄 Testo riconosciuto")
     st.text(clean_text)
