@@ -5,27 +5,33 @@ import streamlit as st
 import easyocr
 import numpy as np
 from PIL import Image
-from openai import OpenAI
-import os
+import re
+from spellchecker import SpellChecker
 
-st.set_page_config(page_title="OCR + GPT", layout="centered")
+st.set_page_config(page_title="OCR Locale", layout="centered")
 
-os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-client = OpenAI()
-
+# -----------------------------
+# OCR cache
+# -----------------------------
 @st.cache_resource
 def load_ocr():
     return easyocr.Reader(['it', 'en'])
 
 reader = load_ocr()
 
+# -----------------------------
+# Session state
+# -----------------------------
 if "raw_text" not in st.session_state:
     st.session_state.raw_text = None
 if "clean_text" not in st.session_state:
     st.session_state.clean_text = None
 
-st.title("📸 OCR + GPT")
+st.title("📸 OCR Locale + Pulizia Testo")
 
+# -----------------------------
+# Camera input
+# -----------------------------
 img_file = st.camera_input("Scatta una foto")
 
 if img_file is not None:
@@ -36,35 +42,36 @@ if img_file is not None:
     with st.spinner("Riconoscimento testo..."):
         img_np = np.array(image)
         ocr_result = reader.readtext(img_np, detail=0)
-        raw_text = "\n".join(ocr_result)[:3000]
+        raw_text = "\n".join(ocr_result)[:3000]  # limita lunghezza
         st.session_state.raw_text = raw_text
         st.session_state.clean_text = None
 
     st.subheader("📄 Testo OCR grezzo")
     st.text(st.session_state.raw_text)
 
-    # Bottone per GPT
-    if st.button("🧠 Pulisci testo con GPT"):
-        with st.spinner("Pulizia testo con GPT..."):
-            try:
-                response = client.responses.create(
-                    model="gpt-3.5-turbo",
-                    input=f"""
-                    Il seguente testo è stato estratto da una foto tramite OCR.
-                    Correggi errori, sistema la formattazione e restituisci SOLO il testo finale pulito.
+    # Pulizia testo con spellchecker e regex
+    if st.button("🧹 Pulisci testo"):
+        with st.spinner("Pulizia testo..."):
+            # Spellchecker
+            spell = SpellChecker(language='it')
+            words = st.session_state.raw_text.split()
+            corrected_words = [spell.correction(w) for w in words]
+            text_corrected = " ".join(corrected_words)
+            # Regex cleanup
+            clean_text = re.sub(r'\s+', ' ', text_corrected).strip()
+            st.session_state.clean_text = clean_text
 
-                    TESTO OCR:
-                    {st.session_state.raw_text}
-                    """
-                )
-                st.session_state.clean_text = response.output_text
-            except Exception as e:
-                st.error(
-                    "Errore GPT (Rate limit o quota esaurita). "
-                    "Riprova tra qualche secondo."
-                )
-
+# -----------------------------
 # Output finale
+# -----------------------------
 if st.session_state.clean_text:
     st.subheader("✅ Testo pulito")
-    st.text(st.session_state.clean_text)
+    st.text_area("Testo finale", st.session_state.clean_text, height=200)
+
+    # Download TXT
+    st.download_button(
+        label="⬇️ Scarica TXT",
+        data=st.session_state.clean_text,
+        file_name="testo_ocr.txt",
+        mime="text/plain"
+    )
