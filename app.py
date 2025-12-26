@@ -8,6 +8,10 @@ from PIL import Image
 from openai import OpenAI
 import os
 
+st.write("Secrets disponibili:", list(st.secrets.keys()))
+st.write("OPENAI_API_KEY presente:", "OPENAI_API_KEY" in st.secrets)
+st.write("Lunghezza key:", len(st.secrets["OPENAI_API_KEY"]))
+
 st.set_page_config(page_title="OCR + GPT", layout="centered")
 
 # 👉 Espone il secret come env var (fondamentale)
