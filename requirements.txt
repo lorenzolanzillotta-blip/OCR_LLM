@@ -1,3 +1,6 @@
+# nel requirements.txt puoi aggiungere come prima riga
+--upgrade pip
+
 streamlit
 torch
 easyocr
